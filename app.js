@@ -1,35 +1,28 @@
-// Enregistrer le service worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/service-worker.js').catch(err => {
-    console.log('Service worker registration failed:', err);
+    console.log('Service worker not available');
   });
 }
 
-// Configuration
 const GAS_URL = 'https://script.google.com/macros/d/AKfycbzKyEVZbhpbH0jWmK4MQtJAUdK1FKGWEZeI8Sfw1iQNk0f0A8ZDm9JCw8KtTdjppsLF/usercontent';
-// Panier en memoire
+
 let panier = [];
 let cameraActive = false;
 let html5QrcodeScanner = null;
 
-// Gestion onglets
 document.querySelectorAll('.tab-button').forEach(button => {
   button.addEventListener('click', function() {
     const tabName = this.getAttribute('data-tab');
-
     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-
     this.classList.add('active');
     document.getElementById(tabName).classList.add('active');
-
     if (tabName !== 'panier' && cameraActive) {
       arreterCamera();
     }
   });
 });
 
-// Onglet Ajouter
 document.getElementById('btnAjouter').addEventListener('click', function() {
   const type = document.getElementById('type').value.trim();
   const marque = document.getElementById('marque').value.trim();
@@ -42,7 +35,7 @@ document.getElementById('btnAjouter').addEventListener('click', function() {
   const tva = document.getElementById('tva').checked;
 
   if (!type || !marque || !couleur || !prixAchat || !prixVente) {
-    afficherMessageAjouter('Erreur : Tous les champs obligatoires doivent etre remplis', 'error');
+    afficherMessageAjouter('Tous les champs obligatoires requis', 'error');
     return;
   }
 
@@ -60,18 +53,27 @@ document.getElementById('btnAjouter').addEventListener('click', function() {
     tva: tva
   };
 
-  google.script.run.withSuccessHandler(function(result) {
+  fetch(GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'ajouterDonnees',
+      donnees: donnees
+    })
+  })
+  .then(response => response.json())
+  .then(result => {
     document.getElementById('loadingAjouter').classList.remove('show');
     if (result.success) {
-      afficherMessageAjouter('Article ajoute avec succes ! ID : ' + result.id, 'success');
+      afficherMessageAjouter('Article ajoute! ID: ' + result.id, 'success');
       reinitialiserFormulaire();
     } else {
-      afficherMessageAjouter('Erreur : ' + result.message, 'error');
+      afficherMessageAjouter('Erreur: ' + result.message, 'error');
     }
-  }).withFailureHandler(function(error) {
+  })
+  .catch(error => {
     document.getElementById('loadingAjouter').classList.remove('show');
-    afficherMessageAjouter('Erreur : ' + error, 'error');
-  }).ajouterDonnees(donnees);
+    afficherMessageAjouter('Erreur: ' + error, 'error');
+  });
 });
 
 document.getElementById('btnNouveau').addEventListener('click', function() {
@@ -98,7 +100,6 @@ function afficherMessageAjouter(texte, type) {
   messageDiv.className = 'message ' + type;
 }
 
-// Onglet Panier
 let panierLocal = JSON.parse(localStorage.getItem('panier')) || [];
 panier = panierLocal;
 
@@ -143,28 +144,22 @@ function demarrerCamera() {
   Html5Qrcode.getCameras().then(devices => {
     if (devices && devices.length) {
       const cameraId = devices[0].id;
-
       html5QrcodeScanner.start(
         cameraId,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         onScanSuccess,
         onScanError
       ).then(() => {
         cameraActive = true;
         btnCamera.style.display = 'none';
         btnStopCamera.style.display = 'block';
-        afficherMessagePanier('Camera activee - scanne un QR code', 'success');
+        afficherMessagePanier('Camera activee', 'success');
       }).catch(err => {
-        afficherMessagePanier('Erreur : ' + err, 'error');
+        afficherMessagePanier('Erreur camera: ' + err, 'error');
       });
-    } else {
-      afficherMessagePanier('Aucune camera detectee', 'error');
     }
   }).catch(err => {
-    afficherMessagePanier('Erreur acces camera : ' + err, 'error');
+    afficherMessagePanier('Acces camera refuse', 'error');
   });
 }
 
@@ -177,24 +172,28 @@ function arreterCamera() {
       cameraActive = false;
       btnCamera.style.display = 'block';
       btnStopCamera.style.display = 'none';
-    }).catch(err => {
-      console.error('Erreur arret camera:', err);
     });
   }
 }
 
-function onScanSuccess(decodedText, decodedResult) {
+function onScanSuccess(decodedText) {
   ajouterArticleAuPanier(decodedText.trim());
 }
 
-function onScanError(error) {
-}
+function onScanError() {}
 
 function ajouterArticleAuPanier(id) {
-  google.script.run.withSuccessHandler(function(result) {
+  fetch(GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'rechercherArticleParId',
+      id: id
+    })
+  })
+  .then(response => response.json())
+  .then(result => {
     if (result.success) {
       const article = result.data;
-
       const articleExistant = panier.find(a => a.id === id);
       if (articleExistant) {
         articleExistant.quantite++;
@@ -208,7 +207,6 @@ function ajouterArticleAuPanier(id) {
           quantite: 1
         });
       }
-
       sauvegarderPanierLocal();
       afficherPanier();
       afficherMessagePanier('Article ajoute', 'success');
@@ -216,11 +214,12 @@ function ajouterArticleAuPanier(id) {
         document.getElementById('messagePanier').className = 'message';
       }, 2000);
     } else {
-      afficherMessagePanier('Article non trouve : ' + result.message, 'error');
+      afficherMessagePanier('Article non trouve', 'error');
     }
-  }).withFailureHandler(function(error) {
-    afficherMessagePanier('Erreur : ' + error, 'error');
-  }).rechercherArticleParId(id);
+  })
+  .catch(error => {
+    afficherMessagePanier('Erreur: ' + error, 'error');
+  });
 }
 
 function afficherPanier() {
@@ -242,9 +241,7 @@ function afficherPanier() {
   panier.forEach((article, index) => {
     const div = document.createElement('div');
     div.className = 'panier-item';
-
     const sousTotal = (article.prixVente * article.quantite).toFixed(2);
-
     div.innerHTML = `
       <div class="panier-item-header">
         <div class="panier-item-info">
@@ -263,7 +260,6 @@ function afficherPanier() {
       </div>
       <div class="panier-item-total">Sous-total: ${sousTotal} EUR</div>
     `;
-
     panierList.appendChild(div);
   });
 
@@ -305,16 +301,25 @@ function calculerTotalPanier() {
 
 function validerPanier() {
   if (panier.length === 0) {
-    afficherMessagePanier('Le panier est vide', 'error');
+    afficherMessagePanier('Panier vide', 'error');
     return;
   }
 
   document.getElementById('loadingPanier').classList.add('show');
 
   const articlesIds = panier.map(a => a.id);
-  const montantReduction = (parseFloat(document.getElementById('reductionPourcent').value) || 0);
+  const montantReduction = parseFloat(document.getElementById('reductionPourcent').value) || 0;
 
-  google.script.run.withSuccessHandler(function(result) {
+  fetch(GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'validerPanierBackend',
+      articlesIds: articlesIds,
+      montantReduction: montantReduction
+    })
+  })
+  .then(response => response.json())
+  .then(result => {
     document.getElementById('loadingPanier').classList.remove('show');
     if (result.success) {
       afficherMessagePanier(result.message, 'success');
@@ -325,10 +330,11 @@ function validerPanier() {
     } else {
       afficherMessagePanier(result.message, 'error');
     }
-  }).withFailureHandler(function(error) {
+  })
+  .catch(error => {
     document.getElementById('loadingPanier').classList.remove('show');
-    afficherMessagePanier('Erreur : ' + error, 'error');
-  }).validerPanierBackend(articlesIds, montantReduction);
+    afficherMessagePanier('Erreur: ' + error, 'error');
+  });
 }
 
 function afficherMessagePanier(texte, type) {
@@ -341,7 +347,6 @@ function sauvegarderPanierLocal() {
   localStorage.setItem('panier', JSON.stringify(panier));
 }
 
-// Charger panier au demarrage
 document.addEventListener('DOMContentLoaded', function() {
   afficherPanier();
   document.getElementById('type').focus();
