@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4285f4">
+  <meta name="description" content="App de gestion d'inventaire avec scanner QR">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%234285f4' width='192' height='192'/><text x='50%' y='50%' font-size='120' fill='white' text-anchor='middle' dominant-baseline='middle' font-weight='bold'>I</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%234285f4' width='192' height='192'/><text x='50%' y='50%' font-size='120' fill='white' text-anchor='middle' dominant-baseline='middle' font-weight='bold'>I</text></svg>">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.4/html5-qrcode.min.js"></script>
+  <title>Gestion Inventaire</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 450px;
+      margin: 0 auto;
+      background: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #4285f4 0%, #357ae8 100%);
+      color: white;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid #ddd;
+      background: white;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #999;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .tab-button.active {
+      color: #4285f4;
+      border-bottom-color: #4285f4;
+    }
+
+    .content {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .section-title {
+      background: #f0f0f0;
+      padding: 10px 0;
+      margin: 16px -16px 12px -16px;
+      padding-left: 16px;
+      font-weight: 600;
+      font-size: 13px;
+      color: #333;
+      border-left: 4px solid #4285f4;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #333;
+    }
+
+    label .required {
+      color: #d32f2f;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #4285f4;
+      box-shadow: 0 0 4px rgba(66, 133, 244, 0.3);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .checkbox-group label {
+      margin-bottom: 0;
+      font-weight: normal;
+      cursor: pointer;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .btn-primary {
+      background-color: #4285f4;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #357ae8;
+    }
+
+    .btn-secondary {
+      background-color: #34a853;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #2d8e47;
+    }
+
+    .btn-danger {
+      background-color: #d32f2f;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #b71c1c;
+    }
+
+    .message {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+
+    .message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+
+    .loading {
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .panier-list {
+      margin: 12px 0;
+    }
+
+    .panier-item {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .panier-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .panier-item-info {
+      flex: 1;
+    }
+
+    .panier-item-id {
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .panier-item-details {
+      font-size: 12px;
+      color: #666;
+      margin-top: 3px;
+    }
+
+    .panier-item-remove {
+      background: #d32f2f;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 3px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    .panier-item-remove:hover {
+      background: #b71c1c;
+    }
+
+    .panier-item-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .panier-item-input input {
+      width: 100%;
+      padding: 8px;
+      font-size: 13px;
+    }
+
+    .panier-item-total {
+      text-align: right;
+      font-weight: 600;
+      color: #4285f4;
+      font-size: 14px;
+    }
+
+    .panier-empty {
+      text-align: center;
+      padding: 30px 0;
+      color: #999;
+    }
+
+    .panier-summary {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 12px;
+      margin: 16px 0;
+      display: none;
+    }
+
+    .panier-summary.show {
+      display: block;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .summary-row.total {
+      font-weight: 600;
+      font-size: 16px;
+      color: #4285f4;
+      border-top: 2px solid #ddd;
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+
+    .summary-row input {
+      width: 80px;
+      padding: 6px;
+      font-size: 13px;
+    }
+
+    #qr-reader {
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    #qr-reader__scan_region {
+      border-radius: 4px;
+    }
+
+    .camera-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .camera-controls button {
+      flex: 1;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .scan-input {
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        max-width: 100%;
+      }
+
+      .content {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Gestion Inventaire</h1>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-button active" data-tab="ajouter">Ajouter</button>
+      <button class="tab-button" data-tab="panier">Panier</button>
+    </div>
+
+    <div class="content">
+      <div id="ajouter" class="tab-content active">
+        <h2 style="font-size: 18px; margin-bottom: 16px;">Ajouter un article</h2>
+
+        <div class="section-title">Informations de base</div>
+
+        <div class="form-group">
+          <label for="type">Type <span class="required">*</span></label>
+          <input type="text" id="type" placeholder="Ex: Tshirt" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label for="marque">Marque <span class="required">*</span></label>
+          <input type="text" id="marque" placeholder="Ex: Nike" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label for="couleur">Couleur <span class="required">*</span></label>
+          <input type="text" id="couleur" placeholder="Ex: Bleu" autocomplete="off">
+        </div>
+
+        <div class="section-title">Categorisations</div>
+
+        <div class="form-group">
+          <label for="cat001">Categorie 1</label>
+          <input type="text" id="cat001" placeholder="Optionnel" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label for="cat002">Categorie 2</label>
+          <input type="text" id="cat002" placeholder="Optionnel" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label for="cat003">Categorie 3</label>
+          <input type="text" id="cat003" placeholder="Optionnel" autocomplete="off">
+        </div>
+
+        <div class="section-title">Tarification</div>
+
+        <div class="form-group">
+          <label for="prixAchat">Prix d'achat (EUR) <span class="required">*</span></label>
+          <input type="number" id="prixAchat" placeholder="0.00" step="0.01" min="0">
+        </div>
+
+        <div class="form-group">
+          <label for="prixVente">Prix de vente (EUR) <span class="required">*</span></label>
+          <input type="number" id="prixVente" placeholder="0.00" step="0.01" min="0">
+        </div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="tva">
+          <label for="tva">Appliquer la TVA (20%)</label>
+        </div>
+
+        <div class="button-group">
+          <button class="btn-primary" id="btnAjouter">Ajouter</button>
+          <button class="btn-secondary" id="btnNouveau">Nouveau</button>
+        </div>
+
+        <div id="messageAjouter" class="message"></div>
+        <div class="loading" id="loadingAjouter">Enregistrement en cours...</div>
+      </div>
+
+      <div id="panier" class="tab-content">
+        <h2 style="font-size: 18px; margin-bottom: 16px;">Panier</h2>
+
+        <div class="camera-controls">
+          <button id="btnCamera" class="btn-primary">Demarrer camera</button>
+          <button id="btnStopCamera" style="background-color: #d32f2f; color: white; display: none;">Arreter camera</button>
+        </div>
+
+        <div id="qr-reader"></div>
+
+        <div class="form-group scan-input">
+          <label for="scanInput">Ou entrer l'ID manuellement</label>
+          <input type="text" id="scanInput" placeholder="Tape l'ID et appuie sur Entree" autocomplete="off">
+        </div>
+
+        <div class="panier-list" id="panierList"></div>
+
+        <div id="panierEmpty" class="panier-empty">
+          Le panier est vide
+        </div>
+
+        <div id="panierSummary" class="panier-summary">
+          <div class="summary-row">
+            <span>Sous-total</span>
+            <span id="sousTotal">0.00 EUR</span>
+          </div>
+          <div class="summary-row">
+            <label>Reduction %</label>
+            <input type="number" id="reductionPourcent" value="0" step="0.01" min="0" max="100">
+          </div>
+          <div class="summary-row">
+            <span>Montant reduction</span>
+            <span id="montantReduction">0.00 EUR</span>
+          </div>
+          <div class="summary-row total">
+            <span>TOTAL</span>
+            <span id="totalFinal">0.00 EUR</span>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button class="btn-secondary" id="btnViderPanier">Vider</button>
+          <button class="btn-primary" id="btnValiderPanier">Valider</button>
+        </div>
+
+        <div id="messagePanier" class="message"></div>
+        <div class="loading" id="loadingPanier">Traitement en cours...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
