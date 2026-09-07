@@ -6,8 +6,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // Configuration
-const GAS_URL = 'const GAS_URL = 'https://script.google.com/macros/d/AKfycbzKyEVZbhpbH0jWmK4MQtJAUdK1FKGWEZeI8Sfw1iQNk0f0A8ZDm9JCw8KtTdjppsLF/usercontent';'; // A remplir apres deploy GAS
-
+const GAS_URL = 'https://script.google.com/macros/d/AKfycbzKyEVZbhpbH0jWmK4MQtJAUdK1FKGWEZeI8Sfw1iQNk0f0A8ZDm9JCw8KtTdjppsLF/usercontent';
 // Panier en memoire
 let panier = [];
 let cameraActive = false;
