@@ -6,7 +6,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // Configuration
-const GAS_URL = 'https://script.google.com/macros/d/YOUR_DEPLOYMENT_ID/usercontent'; // A remplir apres deploy GAS
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzKyEVZbhpbH0jWmK4MQtJAUdK1FKGWEZeI8Sfw1iQNk0f0A8ZDm9JCw8KtTdjppsLF/exec'; // A remplir apres deploy GAS
 
 // Panier en memoire
 let panier = [];
