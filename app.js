@@ -4,7 +4,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-const GAS_URL = 'https://script.google.com/macros/d/AKfycbzKyEVZbhpbH0jWmK4MQtJAUdK1FKGWEZeI8Sfw1iQNk0f0A8ZDm9JCw8KtTdjppsLF/usercontent';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwzFoIr9qAusAPQ7ZtNGVRSUulicyaXaZua9oJRh7JBGKgGNn2JAxnFbARjOkby1j_T/exec';
 
 let panier = [];
 let cameraActive = false;
